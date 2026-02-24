@@ -1,14 +1,22 @@
-import Link from "next/link";
+"use client";
 
-const footerLinks = [
-  { href: "/ledger", label: "Public Ledger" },
-  { href: "/dashboard", label: "Player Console" },
-  { href: "/factions", label: "Faction Vaults" },
-  { href: "/admin", label: "Admin Console" },
-  { href: "/faq", label: "FAQ" },
-];
+import Link from "next/link";
+import { useAuth } from "@/lib/auth";
 
 export function SiteFooter() {
+  const { user } = useAuth();
+  const footerLinks = [
+    { href: "/ledger", label: "Public Ledger" },
+    { href: "/dashboard", label: "Player Console" },
+    ...(user?.role === "FACTION"
+      ? [{ href: "/factions", label: "Faction Vaults" }]
+      : []),
+    ...(user?.role === "ADMIN"
+      ? [{ href: "/admin", label: "Admin Console" }]
+      : []),
+    { href: "/faq", label: "FAQ" },
+  ];
+
   return (
     <footer className="relative z-10 border-t border-zinc-800/60 bg-zinc-950/80">
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-6 py-8 text-sm text-zinc-400 md:flex-row md:items-center md:justify-between">

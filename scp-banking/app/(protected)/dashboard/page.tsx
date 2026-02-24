@@ -23,11 +23,22 @@ import {
 import { SiteShell } from "@/components/site/site-shell";
 import { SectionHeading } from "@/components/site/section-heading";
 import { ArrowUpRight, ShieldCheck, Wallet } from "lucide-react";
-import { createTransaction, getBalance, getTransactions } from "@/lib/api";
+import {
+  createTransaction,
+  getBalance,
+  getFactionVault,
+  getTransactions,
+  type Account,
+  type FactionVault,
+  type Transaction,
+} from "@/lib/api";
+import { useAuth } from "@/lib/auth";
 
 export default function DashboardPage() {
-  const [account, setAccount] = useState<any>(null);
-  const [transactions, setTransactions] = useState<any[]>([]);
+  const { user } = useAuth();
+  const [account, setAccount] = useState<Account | null>(null);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [factionVault, setFactionVault] = useState<FactionVault | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [transferDestination, setTransferDestination] = useState("");
@@ -49,15 +60,21 @@ export default function DashboardPage() {
         ]);
         setAccount(accountData);
         setTransactions(transactionData);
+        if (user?.role === "FACTION") {
+          const vault = await getFactionVault(token);
+          setFactionVault(vault);
+        } else {
+          setFactionVault(null);
+        }
       } catch (err) {
-        setError("No se pudo cargar la informacion del usuario.");
+        setError("Unable to load account information.");
       } finally {
         setLoading(false);
       }
     };
 
     load();
-  }, []);
+  }, [user?.role]);
 
   const formattedTransactions = useMemo(() => {
     if (!account) return [];
@@ -84,7 +101,7 @@ export default function DashboardPage() {
 
     const amountValue = Number(transferAmount);
     if (!transferDestination || !amountValue) {
-      setTransferStatus("Completa todos los campos.");
+      setTransferStatus("Complete all required fields.");
       return;
     }
 
@@ -96,17 +113,26 @@ export default function DashboardPage() {
         description: transferDescription,
       });
       setTransactions((prev) => [newTx, ...prev]);
-      setAccount((prev: any) =>
+      setAccount((prev) =>
         prev ? { ...prev, balance: prev.balance - amountValue } : prev
       );
       setTransferAmount("");
       setTransferDestination("");
       setTransferDescription("");
-      setTransferStatus("Transferencia enviada.");
+      setTransferStatus("Transfer submitted.");
     } catch (err) {
-      setTransferStatus("No se pudo procesar la transferencia.");
+      setTransferStatus("Unable to process transfer.");
     }
   };
+
+  const lastAuditLabel = account?.last_audit_at
+    ? new Date(account.last_audit_at).toLocaleString()
+    : "Not available";
+
+  const taxRateLabel =
+    account?.tax_rate !== undefined
+      ? `${Math.round(account.tax_rate * 100)}%`
+      : "Not available";
 
   return (
     <SiteShell>
@@ -134,7 +160,13 @@ export default function DashboardPage() {
                 },
                 {
                   label: "Account Status",
-                  value: account?.is_frozen ? "Frozen" : "Active",
+                  value: account
+                    ? account.is_frozen
+                      ? "Frozen"
+                      : "Active"
+                    : loading
+                      ? "Loading..."
+                      : "Unavailable",
                 },
               ].map((stat) => (
                 <Card
@@ -181,7 +213,7 @@ export default function DashboardPage() {
                     {formattedTransactions.length === 0 ? (
                       <TableRow>
                         <TableCell className="text-zinc-500" colSpan={5}>
-                          No hay movimientos disponibles.
+                          No transactions available.
                         </TableCell>
                       </TableRow>
                     ) : (
@@ -274,45 +306,56 @@ export default function DashboardPage() {
                 </div>
                 <div className="flex items-center justify-between">
                   <span>Last audit</span>
-                  <span className="font-semibold text-white">12 hours</span>
+                  <span className="font-semibold text-white">
+                    {lastAuditLabel}
+                  </span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span>Tax rate</span>
-                  <span className="font-semibold text-white">3%</span>
+                  <span className="font-semibold text-white">
+                    {taxRateLabel}
+                  </span>
                 </div>
                 <div className="flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-200">
                   <ShieldCheck className="h-4 w-4" />
-                  Audit chain verified
+                  {account?.audit_status === "FAILED"
+                    ? "Audit chain failed"
+                    : account?.audit_status === "PENDING"
+                      ? "Audit chain pending"
+                      : "Audit chain verified"}
                 </div>
               </CardContent>
             </Card>
-            <Card className="border-zinc-800/80 bg-zinc-900/70">
-              <CardHeader>
-                <CardTitle className="text-white">Faction Access</CardTitle>
-                <CardDescription className="text-zinc-400">
-                  Switch to a faction vault if you have clearance.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <Wallet className="h-5 w-5 text-red-300" />
-                  <div>
-                    <div className="text-sm font-semibold text-white">
-                      MTF Gamma-13 Vault
-                    </div>
-                    <div className="text-xs text-zinc-400">
-                      Authorized signer
+            {user?.role === "FACTION" && factionVault ? (
+              <Card className="border-zinc-800/80 bg-zinc-900/70">
+                <CardHeader>
+                  <CardTitle className="text-white">Faction Access</CardTitle>
+                  <CardDescription className="text-zinc-400">
+                    Vault access is linked to your faction profile.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Wallet className="h-5 w-5 text-red-300" />
+                    <div>
+                      <div className="text-sm font-semibold text-white">
+                        {factionVault.name}
+                      </div>
+                      <div className="text-xs text-zinc-400">
+                        {factionVault.authorized_signers.length} authorized
+                        signers
+                      </div>
                     </div>
                   </div>
-                </div>
-                <Link href="/factions">
-                  <Button variant="outline" className="border-zinc-700">
-                    Open
-                    <ArrowUpRight className="h-4 w-4" />
-                  </Button>
-                </Link>
-              </CardContent>
-            </Card>
+                  <Link href="/factions">
+                    <Button variant="outline" className="border-zinc-700">
+                      Open
+                      <ArrowUpRight className="h-4 w-4" />
+                    </Button>
+                  </Link>
+                </CardContent>
+              </Card>
+            ) : null}
           </div>
         </div>
       </section>

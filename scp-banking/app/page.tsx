@@ -1,5 +1,8 @@
 // app/page.tsx
+"use client";
+
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import {
   ShieldCheck,
   ScrollText,
@@ -20,6 +23,8 @@ import {
 } from "@/components/ui/card";
 import { SiteShell } from "@/components/site/site-shell";
 import { SectionHeading } from "@/components/site/section-heading";
+import { useAuth } from "@/lib/auth";
+import { getPublicStats, type PublicStats } from "@/lib/api";
 
 const pillars = [
   {
@@ -70,6 +75,22 @@ const personas = [
 ];
 
 export default function LandingPage() {
+  const { user } = useAuth();
+  const [stats, setStats] = useState<PublicStats | null>(null);
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const data = await getPublicStats();
+        setStats(data);
+      } catch {
+        setStats(null);
+      }
+    };
+
+    load();
+  }, []);
+
   return (
     <SiteShell>
       <section className="mx-auto flex w-full max-w-6xl flex-col gap-14 px-6 py-20 md:py-28">
@@ -100,9 +121,24 @@ export default function LandingPage() {
             </div>
             <div className="grid gap-4 sm:grid-cols-3">
               {[
-                { label: "Registered Users", value: "10,000+" },
-                { label: "Active Players", value: "2,000+" },
-                { label: "Tracked Transfers", value: "100%" },
+                {
+                  label: "Registered Users",
+                  value: stats
+                    ? stats.registered_users.toLocaleString()
+                    : "Loading...",
+                },
+                {
+                  label: "Active Players",
+                  value: stats
+                    ? stats.active_players.toLocaleString()
+                    : "Loading...",
+                },
+                {
+                  label: "Tracked Transfers",
+                  value: stats
+                    ? `${stats.tracked_transfers_percent}%`
+                    : "Loading...",
+                },
               ].map((stat) => (
                 <div
                   key={stat.label}
@@ -130,22 +166,30 @@ export default function LandingPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4 text-sm text-zinc-400">
-                  <div className="flex items-center justify-between">
-                    <span>Personal Accounts</span>
-                    <span className="font-semibold text-white">8,462</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span>Faction Vaults</span>
-                    <span className="font-semibold text-white">128</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span>Frozen Accounts</span>
-                    <span className="font-semibold text-white">14</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span>Last Audit Sync</span>
-                    <span className="font-semibold text-white">3 min ago</span>
-                  </div>
+                <div className="flex items-center justify-between">
+                  <span>Personal Accounts</span>
+                  <span className="font-semibold text-white">
+                    {stats ? stats.personal_accounts.toLocaleString() : "..."}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span>Faction Vaults</span>
+                  <span className="font-semibold text-white">
+                    {stats ? stats.faction_vaults.toLocaleString() : "..."}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span>Frozen Accounts</span>
+                  <span className="font-semibold text-white">
+                    {stats ? stats.frozen_accounts.toLocaleString() : "..."}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span>Last Audit Sync</span>
+                  <span className="font-semibold text-white">
+                    {stats ? `${stats.last_audit_sync_minutes} min ago` : "..."}
+                  </span>
+                </div>
                 </div>
               </CardContent>
             </Card>
@@ -301,15 +345,21 @@ export default function LandingPage() {
               {[
                 {
                   label: "Flagged Accounts",
-                  value: "6 under review",
+                  value: stats
+                    ? `${stats.flagged_accounts} under review`
+                    : "Loading...",
                 },
                 {
                   label: "Tax Rules Active",
-                  value: "3 policies",
+                  value: stats
+                    ? `${stats.tax_policies} policies`
+                    : "Loading...",
                 },
                 {
                   label: "Admin Actions Today",
-                  value: "12 approved",
+                  value: stats
+                    ? `${stats.admin_actions_today} logged`
+                    : "Loading...",
                 },
               ].map((item) => (
                 <div key={item.label} className="flex justify-between">
@@ -343,11 +393,13 @@ export default function LandingPage() {
                   Access Terminal
                 </Button>
               </Link>
-              <Link href="/admin">
-                <Button size="lg" variant="outline" className="border-zinc-700">
-                  Review Admin Console
-                </Button>
-              </Link>
+              {user?.role === "ADMIN" ? (
+                <Link href="/admin">
+                  <Button size="lg" variant="outline" className="border-zinc-700">
+                    Review Admin Console
+                  </Button>
+                </Link>
+              ) : null}
             </div>
           </CardContent>
         </Card>

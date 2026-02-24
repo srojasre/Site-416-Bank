@@ -12,7 +12,8 @@ uvicorn main:app --reload --port 8000
 
 ## Demo credentials
 
-- usuario: `demo`
-- contrasena: `demo123`
+- player: `demo` / `demo123`
+- faction: `faction` / `faction123`
+- admin: `admin` / `admin123`
 
 The API will be available at `http://localhost:8000`.

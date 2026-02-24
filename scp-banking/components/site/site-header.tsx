@@ -1,17 +1,21 @@
+"use client";
+
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ShieldCheck, Terminal } from "lucide-react";
-
-const navLinks = [
-  { href: "/", label: "Home" },
-  { href: "/#system", label: "System" },
-  { href: "/factions", label: "Factions" },
-  { href: "/ledger", label: "Ledger" },
-  { href: "/admin", label: "Admin" },
-  { href: "/faq", label: "FAQ" },
-];
+import { useAuth } from "@/lib/auth";
 
 export function SiteHeader() {
+  const { user } = useAuth();
+  const navLinks = [
+    { href: "/", label: "Home" },
+    { href: "/#system", label: "System" },
+    ...(user?.role === "FACTION" ? [{ href: "/factions", label: "Factions" }] : []),
+    { href: "/ledger", label: "Ledger" },
+    ...(user?.role === "ADMIN" ? [{ href: "/admin", label: "Admin" }] : []),
+    { href: "/faq", label: "FAQ" },
+  ];
+
   return (
     <header className="relative z-20 border-b border-zinc-800/60 bg-zinc-950/70 backdrop-blur">
       <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-6 px-6 py-4">

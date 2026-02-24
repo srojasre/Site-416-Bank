@@ -11,11 +11,12 @@ import { SiteShell } from "@/components/site/site-shell";
 import { SectionHeading } from "@/components/site/section-heading";
 import { Lock, Terminal, User } from "lucide-react";
 import { login } from "@/lib/api";
+import { writeSession } from "@/lib/auth";
 
 const accessNotes = [
-  "Solo se solicita usuario y contrasena por ahora.",
-  "Todos los accesos quedan auditados en el backend.",
-  "Los intentos fallidos activan revision automatica.",
+  "Only username and password are required for now.",
+  "All logins are audited in the backend.",
+  "Failed attempts trigger automated review.",
 ];
 
 export default function LoginPage() {
@@ -30,11 +31,10 @@ export default function LoginPage() {
     setError(null);
     try {
       const response = await login(username, password);
-      window.localStorage.setItem("scp_auth", response.access_token ?? "demo");
-      window.localStorage.setItem("scp_user", username);
+      writeSession(response.access_token, response.user);
       router.push("/dashboard");
     } catch (err) {
-      setError("Backend no disponible o credenciales invalidas.");
+      setError("Backend unavailable or invalid credentials.");
     } finally {
       setLoading(false);
     }
@@ -53,21 +53,21 @@ export default function LoginPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-white">
                 <Terminal className="h-5 w-5 text-red-300" />
-                Acceso al sistema
+                System Access
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="space-y-2">
-                <Label htmlFor="username">Usuario</Label>
+                <Label htmlFor="username">Username</Label>
                 <Input
                   id="username"
-                  placeholder="usuario_demo"
+                  placeholder="demo_user"
                   value={username}
                   onChange={(event) => setUsername(event.target.value)}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="password">Contrasena</Label>
+                <Label htmlFor="password">Password</Label>
                 <Input
                   id="password"
                   type="password"
@@ -90,7 +90,7 @@ export default function LoginPage() {
                   </Button>
                 </Link>
               </div>
-              {error ? (
+                {error ? (
                 <div className="rounded-lg border border-red-500/40 bg-red-500/10 px-4 py-2 text-sm text-red-200">
                   {error}
                 </div>
@@ -98,11 +98,19 @@ export default function LoginPage() {
               <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
                 <div className="flex items-center gap-2 font-semibold">
                   <User className="h-4 w-4" />
-                  Datos falsos para pruebas
+                  Demo credentials
                 </div>
                 <p className="mt-2 text-emerald-100/80">
-                  Usuario: <span className="font-semibold">demo</span> -
-                  Contrasena: <span className="font-semibold">demo123</span>
+                  Player: <span className="font-semibold">demo</span> /
+                  <span className="font-semibold">demo123</span>
+                </p>
+                <p className="mt-2 text-emerald-100/80">
+                  Faction: <span className="font-semibold">faction</span> /
+                  <span className="font-semibold">faction123</span>
+                </p>
+                <p className="mt-2 text-emerald-100/80">
+                  Admin: <span className="font-semibold">admin</span> /
+                  <span className="font-semibold">admin123</span>
                 </p>
               </div>
             </CardContent>
@@ -111,7 +119,7 @@ export default function LoginPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-white">
                 <Lock className="h-5 w-5 text-red-300" />
-                Protocolo de acceso
+                Access Protocol
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4 text-sm text-zinc-300">
@@ -123,7 +131,7 @@ export default function LoginPage() {
               ))}
               <div className="mt-6 rounded-xl border border-zinc-800/80 bg-zinc-950/60 p-4">
                 <div className="text-xs uppercase tracking-[0.3em] text-zinc-500">
-                  Estado del sistema
+                  System Status
                 </div>
                 <div className="mt-3 space-y-2 text-sm text-zinc-400">
                   <div className="flex items-center justify-between">

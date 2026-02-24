@@ -4,7 +4,7 @@ export type AccountType = 'PERSONAL' | 'FACTION';
 export type TransactionType = 'TRANSFER' | 'DEPOSIT' | 'WITHDRAWAL' | 'TAX' | 'FINE';
 
 export interface Account {
-  id: string; // UUID
+  id: string; 
   ownerName: string; 
   type: AccountType;
   balance: number;
@@ -14,7 +14,7 @@ export interface Account {
 
 export interface Transaction {
   id: string;
-  sourceAccountId: string | null; // Null si es emisión administrativa
+  sourceAccountId: string | null; 
   destinationAccountId: string;
   amount: number;
   type: TransactionType;
