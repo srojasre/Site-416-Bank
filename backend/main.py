@@ -24,6 +24,12 @@ class LoginRequest(BaseModel):
     password: str
 
 
+class RegisterRequest(BaseModel):
+    username: str
+    password: str
+    name: str
+
+
 class User(BaseModel):
     id: str
     name: str
@@ -441,6 +447,44 @@ def login(payload: LoginRequest) -> LoginResponse:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
     token = issue_token(payload.username)
     return LoginResponse(access_token=token, user=record["user"])
+
+
+@app.post("/api/register", response_model=LoginResponse)
+def register(payload: RegisterRequest) -> LoginResponse:
+    username = payload.username.strip().lower()
+    if not username:
+        raise HTTPException(status_code=400, detail="Username is required")
+    if username in USERS:
+        raise HTTPException(status_code=409, detail="Username already exists")
+    if len(payload.password) < 6:
+        raise HTTPException(status_code=400, detail="Password must be at least 6 characters")
+
+    account_id = f"acc-{uuid4().hex[:6]}"
+    account_number = f"416-{uuid4().hex[:5].upper()}"
+    new_account = Account(
+        id=account_id,
+        owner_name=payload.name.strip() or username,
+        type="PERSONAL",
+        balance=0.0,
+        is_frozen=False,
+        account_number=account_number,
+        last_audit_at=datetime.now(timezone.utc).isoformat(),
+        tax_rate=TAX_RULES.personal_rate,
+        audit_status="VERIFIED",
+    )
+    ACCOUNTS[account_id] = new_account
+    TRANSACTIONS_BY_ACCOUNT[account_id] = []
+
+    new_user = User(
+        id=f"user-{uuid4().hex[:6]}",
+        name=new_account.owner_name,
+        role="PLAYER",
+        account_id=account_id,
+    )
+    USERS[username] = {"password": payload.password, "user": new_user}
+
+    token = issue_token(username)
+    return LoginResponse(access_token=token, user=new_user)
 
 
 @app.get("/api/me", response_model=User)

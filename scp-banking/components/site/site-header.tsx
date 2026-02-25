@@ -43,12 +43,26 @@ export function SiteHeader() {
             <ShieldCheck className="h-3.5 w-3.5" />
             Secure Channel
           </div>
-          <Link href="/login">
-            <Button variant="outline" className="border-zinc-700 text-white">
-              <Terminal className="h-4 w-4" />
-              Access Terminal
-            </Button>
-          </Link>
+          {user ? (
+            <Link href="/dashboard">
+              <Button variant="outline" className="border-zinc-700 text-white">
+                <Terminal className="h-4 w-4" />
+                Open Console
+              </Button>
+            </Link>
+          ) : (
+            <>
+              <Link href="/login">
+                <Button variant="outline" className="border-zinc-700 text-white">
+                  <Terminal className="h-4 w-4" />
+                  Login
+                </Button>
+              </Link>
+              <Link href="/register">
+                <Button className="bg-white text-black">Create Account</Button>
+              </Link>
+            </>
+          )}
         </div>
       </div>
       <div className="flex items-center justify-center gap-4 border-t border-zinc-900/80 bg-zinc-950/80 px-6 py-2 text-[11px] uppercase tracking-[0.2em] text-zinc-500 md:hidden">

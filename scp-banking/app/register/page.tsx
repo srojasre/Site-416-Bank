@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -9,32 +9,32 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SiteShell } from "@/components/site/site-shell";
 import { SectionHeading } from "@/components/site/section-heading";
-import { Lock, Terminal, User } from "lucide-react";
-import { login } from "@/lib/api";
+import { BadgePlus, Terminal, User } from "lucide-react";
+import { registerAccount } from "@/lib/api";
 import { writeSession } from "@/lib/auth";
 
-const accessNotes = [
-  "Only username and password are required for now.",
-  "All logins are audited in the backend.",
-  "Failed attempts trigger automated review.",
-];
-
-export default function LoginPage() {
+export default function RegisterPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [username, setUsername] = useState("demo");
-  const [password, setPassword] = useState("demo123");
+  const [name, setName] = useState("");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
 
-  const handleLogin = async () => {
+  const handleRegister = async () => {
+    if (!name || !username || !password) {
+      setError("Complete all required fields.");
+      return;
+    }
+
     setLoading(true);
     setError(null);
     try {
-      const response = await login(username, password);
+      const response = await registerAccount({ name, username, password });
       writeSession(response.access_token, response.user);
       router.push("/dashboard");
     } catch (err) {
-      setError("Backend unavailable or invalid credentials.");
+      setError("Unable to create account.");
     } finally {
       setLoading(false);
     }
@@ -44,24 +44,33 @@ export default function LoginPage() {
     <SiteShell>
       <section className="mx-auto w-full max-w-6xl px-6 py-20">
         <SectionHeading
-          eyebrow="Access Terminal"
-          title="Secure login for Site-416 banking."
-          description="Choose the correct console and validate your identity before handling funds."
+          eyebrow="New Account"
+          title="Create a player account for Site-416 banking."
+          description="Accounts are tied to a personal ledger and audited from day one."
         />
         <div className="mt-10 grid gap-8 lg:grid-cols-[1.05fr_0.95fr]">
           <Card className="border-zinc-800/80 bg-zinc-900/70">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-white">
-                <Terminal className="h-5 w-5 text-red-300" />
-                System Access
+                <BadgePlus className="h-5 w-5 text-red-300" />
+                Create Account
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="space-y-2">
+                <Label htmlFor="name">Full Name</Label>
+                <Input
+                  id="name"
+                  placeholder="Operative Name"
+                  value={name}
+                  onChange={(event) => setName(event.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
                 <Label htmlFor="username">Username</Label>
                 <Input
                   id="username"
-                  placeholder="demo_user"
+                  placeholder="your_username"
                   value={username}
                   onChange={(event) => setUsername(event.target.value)}
                 />
@@ -71,7 +80,7 @@ export default function LoginPage() {
                 <Input
                   id="password"
                   type="password"
-                  placeholder="********"
+                  placeholder="Minimum 6 characters"
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
                 />
@@ -79,23 +88,18 @@ export default function LoginPage() {
               <div className="flex flex-wrap gap-3">
                 <Button
                   className="bg-white text-black"
-                  onClick={handleLogin}
+                  onClick={handleRegister}
                   disabled={loading}
                 >
-                  {loading ? "Authenticating..." : "Authenticate"}
+                  {loading ? "Creating..." : "Create Account"}
                 </Button>
-                <Link href="/register">
-                  <Button className="bg-zinc-200 text-black">
-                    Create Account
-                  </Button>
-                </Link>
-                <Link href="/faq">
+                <Link href="/login">
                   <Button variant="outline" className="border-zinc-700">
-                    View Access Guide
+                    Go to Login
                   </Button>
                 </Link>
               </div>
-                {error ? (
+              {error ? (
                 <div className="rounded-lg border border-red-500/40 bg-red-500/10 px-4 py-2 text-sm text-red-200">
                   {error}
                 </div>
@@ -103,19 +107,11 @@ export default function LoginPage() {
               <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
                 <div className="flex items-center gap-2 font-semibold">
                   <User className="h-4 w-4" />
-                  Demo credentials
+                  Player account only
                 </div>
                 <p className="mt-2 text-emerald-100/80">
-                  Player: <span className="font-semibold">demo</span> /
-                  <span className="font-semibold">demo123</span>
-                </p>
-                <p className="mt-2 text-emerald-100/80">
-                  Faction: <span className="font-semibold">faction</span> /
-                  <span className="font-semibold">faction123</span>
-                </p>
-                <p className="mt-2 text-emerald-100/80">
-                  Admin: <span className="font-semibold">admin</span> /
-                  <span className="font-semibold">admin123</span>
+                  Faction and admin roles are assigned by the system after
+                  review.
                 </p>
               </div>
             </CardContent>
@@ -123,36 +119,21 @@ export default function LoginPage() {
           <Card className="border-zinc-800/80 bg-zinc-900/70">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-white">
-                <Lock className="h-5 w-5 text-red-300" />
-                Access Protocol
+                <Terminal className="h-5 w-5 text-red-300" />
+                Onboarding Notes
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4 text-sm text-zinc-300">
-              {accessNotes.map((note) => (
+              {[
+                "Your account starts with a zero balance.",
+                "All activity is monitored for audit compliance.",
+                "You can request faction access after approval.",
+              ].map((note) => (
                 <div key={note} className="flex items-start gap-3">
                   <span className="mt-1 h-2 w-2 rounded-full bg-red-500/80" />
                   <span>{note}</span>
                 </div>
               ))}
-              <div className="mt-6 rounded-xl border border-zinc-800/80 bg-zinc-950/60 p-4">
-                <div className="text-xs uppercase tracking-[0.3em] text-zinc-500">
-                  System Status
-                </div>
-                <div className="mt-3 space-y-2 text-sm text-zinc-400">
-                  <div className="flex items-center justify-between">
-                    <span>Audit sync</span>
-                    <span className="font-semibold text-white">Active</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span>Fraud scanner</span>
-                    <span className="font-semibold text-white">Online</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span>Ledger hash</span>
-                    <span className="font-semibold text-white">Verified</span>
-                  </div>
-                </div>
-              </div>
             </CardContent>
           </Card>
         </div>
