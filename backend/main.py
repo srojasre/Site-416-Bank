@@ -6,6 +6,7 @@ from typing import List, Optional
 from uuid import uuid4
 
 import jwt
+from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, Header, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
@@ -23,6 +24,8 @@ from sqlalchemy import (
 )
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, declarative_base, sessionmaker
+
+load_dotenv()
 
 app = FastAPI(title="Site-416 Banking API", version="1.0.0")
 
@@ -388,227 +391,9 @@ def execute_transaction(db: Session, account: AccountModel, payload: CreateTrans
     return new_tx
 
 
-def seed_data(db: Session):
-    if db.query(UserModel).first():
-        return
-
-    personal_account = AccountModel(
-        id="acc-001",
-        owner_name="Operative K-92",
-        type="PERSONAL",
-        balance=12480.0,
-        is_frozen=False,
-        account_number="416-00982",
-        last_audit_at=datetime(2026, 2, 23, 20, 10, tzinfo=timezone.utc),
-        tax_rate=0.03,
-        audit_status="VERIFIED",
-    )
-    faction_account = AccountModel(
-        id="acc-fac-013",
-        owner_name="MTF Gamma-13 Vault",
-        type="FACTION",
-        balance=84200.0,
-        is_frozen=False,
-        account_number="416-FA-013",
-        last_audit_at=datetime(2026, 2, 23, 19, 0, tzinfo=timezone.utc),
-        tax_rate=0.05,
-        audit_status="VERIFIED",
-    )
-    admin_account = AccountModel(
-        id="acc-admin-001",
-        owner_name="Site-416 Administration",
-        type="PERSONAL",
-        balance=2300.0,
-        is_frozen=False,
-        account_number="416-ADM-001",
-        last_audit_at=datetime(2026, 2, 23, 18, 45, tzinfo=timezone.utc),
-        tax_rate=0.0,
-        audit_status="VERIFIED",
-    )
-
-    db.add_all([personal_account, faction_account, admin_account])
-
-    users = [
-        UserModel(
-            id="user-demo",
-            username="demo",
-            password="demo123",
-            name="Operative K-92",
-            role="PLAYER",
-            account_id=personal_account.id,
-        ),
-        UserModel(
-            id="user-faction",
-            username="faction",
-            password="faction123",
-            name="Gamma-13 Command",
-            role="FACTION",
-            account_id=faction_account.id,
-            faction_id="faction-gamma-13",
-        ),
-        UserModel(
-            id="user-admin",
-            username="admin",
-            password="admin123",
-            name="Site-416 Oversight",
-            role="ADMIN",
-            account_id=admin_account.id,
-        ),
-    ]
-    db.add_all(users)
-
-    db.add_all(
-        [
-            TransactionModel(
-                id="TX-44821",
-                source_account_id="acc-payroll",
-                destination_account_id=personal_account.id,
-                amount=3400.0,
-                type="DEPOSIT",
-                timestamp=datetime(2026, 2, 9, 8, 14, tzinfo=timezone.utc),
-                description="Foundation payroll",
-                status="COMPLETED",
-            ),
-            TransactionModel(
-                id="TX-44820",
-                source_account_id=personal_account.id,
-                destination_account_id="acc-alpha-19",
-                amount=1200.0,
-                type="TRANSFER",
-                timestamp=datetime(2026, 2, 9, 7, 42, tzinfo=timezone.utc),
-                description="Supplies",
-                status="COMPLETED",
-            ),
-            TransactionModel(
-                id="TX-44819",
-                source_account_id=personal_account.id,
-                destination_account_id="acc-treasury",
-                amount=120.0,
-                type="TAX",
-                timestamp=datetime(2026, 2, 8, 19, 42, tzinfo=timezone.utc),
-                description="Automated tax",
-                status="COMPLETED",
-            ),
-            TransactionModel(
-                id="FX-9921",
-                source_account_id=faction_account.id,
-                destination_account_id="acc-supply",
-                amount=4500.0,
-                type="TRANSFER",
-                timestamp=datetime(2026, 2, 11, 12, 10, tzinfo=timezone.utc),
-                description="Containment supply",
-                status="COMPLETED",
-            ),
-            TransactionModel(
-                id="FX-9920",
-                source_account_id="acc-council",
-                destination_account_id=faction_account.id,
-                amount=12000.0,
-                type="DEPOSIT",
-                timestamp=datetime(2026, 2, 10, 9, 20, tzinfo=timezone.utc),
-                description="Council budget",
-                status="COMPLETED",
-            ),
-            TransactionModel(
-                id="FX-9919",
-                source_account_id=faction_account.id,
-                destination_account_id="acc-treasury",
-                amount=600.0,
-                type="TAX",
-                timestamp=datetime(2026, 2, 9, 16, 5, tzinfo=timezone.utc),
-                description="Monthly tax",
-                status="COMPLETED",
-            ),
-            TransactionModel(
-                id="TX-ADM-1",
-                source_account_id="acc-treasury",
-                destination_account_id=admin_account.id,
-                amount=2300.0,
-                type="DEPOSIT",
-                timestamp=datetime(2026, 2, 9, 10, 0, tzinfo=timezone.utc),
-                description="Operational budget",
-                status="COMPLETED",
-            ),
-        ]
-    )
-
-    faction_vault = FactionVaultModel(
-        id="faction-gamma-13",
-        name="MTF Gamma-13 Vault",
-        account_id=faction_account.id,
-    )
-    db.add(faction_vault)
-
-    db.add_all(
-        [
-            FactionSignerModel(
-                id="signer-iris", name="Commander Iris", role="Primary signer", faction_id=faction_vault.id
-            ),
-            FactionSignerModel(
-                id="signer-novak", name="Lt. Novak", role="Co-signer", faction_id=faction_vault.id
-            ),
-            FactionSignerModel(
-                id="signer-hana", name="Ops Chief Hana", role="Auditor", faction_id=faction_vault.id
-            ),
-        ]
-    )
-
-    db.add_all(
-        [
-            AdminActionModel(
-                id="AD-1209",
-                action="Account freeze",
-                target="Operative J-14",
-                reason="Suspicious transfers",
-                status="APPROVED",
-                timestamp=datetime(2026, 2, 12, 15, 15, tzinfo=timezone.utc),
-            ),
-            AdminActionModel(
-                id="AD-1208",
-                action="Balance adjustment",
-                target="Gamma-13 Vault",
-                reason="Raid reward correction",
-                status="APPROVED",
-                timestamp=datetime(2026, 2, 12, 11, 2, tzinfo=timezone.utc),
-            ),
-            AdminActionModel(
-                id="AD-1207",
-                action="Tax rule update",
-                target="Faction accounts",
-                reason="Inflation control",
-                status="PENDING",
-                timestamp=datetime(2026, 2, 11, 18, 33, tzinfo=timezone.utc),
-            ),
-        ]
-    )
-
-    db.add_all(
-        [
-            WatchlistItemModel(account="Delta-4 Logistics", note="Rapid accumulation"),
-            WatchlistItemModel(account="Operative K-92", note="High outbound volume"),
-            WatchlistItemModel(account="Site-416 Vault", note="Manual review"),
-        ]
-    )
-
-    db.add(
-        TaxRulesModel(
-            id=1, personal_rate=0.03, faction_rate=0.05, updated_at=datetime(2026, 2, 20, 14, 40, tzinfo=timezone.utc)
-        )
-    )
-    db.add(
-        ComplianceStatsModel(
-            id=1, transactions_scanned=4208, flags_opened=6, resolved_alerts=4
-        )
-    )
-
-    db.commit()
-
-
 @app.on_event("startup")
 def on_startup() -> None:
     Base.metadata.create_all(bind=engine)
-    with SessionLocal() as db:
-        seed_data(db)
 
 
 @app.get("/api/health")

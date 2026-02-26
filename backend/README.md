@@ -10,6 +10,7 @@ pip install -r requirements.txt
 set ALLOWED_ORIGINS=http://localhost:3000
 set DATABASE_URL=postgresql://postgres:[YOUR-PASSWORD]@db.amcodmqzewbzkfhegztv.supabase.co:5432/postgres
 set JWT_SECRET=change-me
+python init_db.py
 uvicorn main:app --reload --port 8000
 ```
 
